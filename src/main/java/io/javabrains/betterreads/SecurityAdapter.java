@@ -1,4 +1,4 @@
-package io.javabrains;
+package io.javabrains.betterreads;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -14,10 +14,13 @@ public class SecurityAdapter extends WebSecurityConfigurerAdapter {
     @Override
 	protected void configure(HttpSecurity http) throws Exception {
 		// @formatter:off
+
+		//http://localhost:8080/books/10
 		http
 			.authorizeRequests(a -> a
-				.antMatchers("/", "/error").permitAll()  //When someOne--Root access to / permit verybody
-				.anyRequest().authenticated() //Any other is handled
+//				.antMatchers("/", "/error").permitAll()  //When someOne--Root access to / permit verybody
+//				.anyRequest().authenticated() //Any other is handled --Any request is authenticated
+							.anyRequest().permitAll() //
 			)
 			.exceptionHandling(e -> e
 				.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

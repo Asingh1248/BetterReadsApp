@@ -1,4 +1,5 @@
 spring:
+  application.name: betterreads
   security:
     oauth2:
       client:
@@ -11,3 +12,33 @@ spring:
 #  Hey Browser go call this above URL
 
 # Login :-Asking Github to authenticate for us :- Github needs to know :--Configure my application ://OAUth --handshake==>Auth
+
+  data:
+    cassandra:
+      keyspace-name: main
+      username: vBqZMYNXYjSZxZilbQsMpTIM
+      password: FG47J5FkpMrO4UFDiwS4rYAd1JlE6ftENYZlwmk8uYjAJI3ZAChOYna07LJuhU8MikLF-80HCJ_W5StPwoS77G+yFNt5a04LLyGgTyXv+JOgnX+52Tfc.y-BzJmh2Qiy
+      #      schema-action: recreate
+      schema-action: create-if-not-exists
+      request:
+        timeout: 10s
+      connection:
+        connect-timeout: 10s
+        init-query-timeout: 10s
+  main:
+    allow-circular-references: true
+
+#  devtools:
+#    livereload:
+#      port: 35730
+
+datastax.astra:
+  secure-connect-bundle: secure-connect.zip
+
+astra.db:
+  id: b553f74f-35d1-44e1-aaeb-2d3f0f38d9b2
+  region: us-east1
+  keyspace: main
+  application.token:  AstraCS:vBqZMYNXYjSZxZilbQsMpTIM:f27fe8ee4091e17e5f318af3dd5fea11df3048d2b8b269fed1edcd543599f30c
+
+
