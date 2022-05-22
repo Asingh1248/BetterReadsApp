@@ -1,0 +1,13 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id:  Iv1.f9ee263e4392053c
+            client-secret: c78c317c6e1e43ca282b18e7298b53c193d637cc
+
+#            http://localhost:8080/login/oauth2/code/github
+#  Hey Browser go call this above URL
+
+# Login :-Asking Github to authenticate for us :- Github needs to know :--Configure my application ://OAUth --handshake==>Auth
