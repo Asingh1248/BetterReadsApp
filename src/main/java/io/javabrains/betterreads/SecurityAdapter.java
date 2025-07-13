@@ -1,38 +1,38 @@
 package io.javabrains.betterreads;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 @Configuration
-public class SecurityAdapter extends WebSecurityConfigurerAdapter {
+@EnableWebSecurity
+public class SecurityAdapter {
 
-    @Override
-	protected void configure(HttpSecurity http) throws Exception {
-		// @formatter:off
-
-		//http://localhost:8080/books/10
-		http
-			.authorizeRequests(a -> a
-//				.antMatchers("/", "/error").permitAll()  //When someOne--Root access to / permit verybody
-//				.anyRequest().authenticated() //Any other is handled --Any request is authenticated
-							.anyRequest().permitAll() //
-			)
-			.exceptionHandling(e -> e
-				.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-			)
-			.csrf(c -> c
-				.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-			)
-			.logout(l -> l
-				.logoutSuccessUrl("/").permitAll() //Logout
-			)
-			.oauth2Login();
-		// @formatter:on
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // @formatter:off
+        //http://localhost:8080/books/10
+        http
+            .authorizeHttpRequests(authz -> authz
+                .anyRequest().permitAll() // All requests are permitted for now
+            )
+            .exceptionHandling(e -> e
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            )
+            .csrf(c -> c
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+            )
+            .logout(l -> l
+                .logoutSuccessUrl("/").permitAll() //Logout
+            )
+            .oauth2Login();
+        // @formatter:on
+        
+        return http.build();
     }
-    
 }

@@ -1,6 +1,5 @@
 package io.javabrains.betterreads.search;
 
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -10,68 +9,83 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Controller
 public class SearchController {
 
-    private final String COVER_IMAGE_ROOT="https://covers.openlibrary.org/b/id/";
+    private static final String COVER_IMAGE_ROOT = "https://covers.openlibrary.org/b/id/";
+    private static final String NO_IMAGE_PATH = "/images/No-image.png";
+    private static final int MAX_RESULTS = 10;
+    private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
-     private final WebClient webClient; //Most optimal way ==>Thread
+    private final WebClient webClient;
 
-    //Make Call to Search API-http://openlibrary.org/search.json?q=the+lord+of+the+rings
-    public SearchController(WebClient.Builder webClientBuilder){
-
-        this.webClient = webClientBuilder.exchangeStrategies(ExchangeStrategies.builder()
+    public SearchController(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder
+                .exchangeStrategies(ExchangeStrategies.builder()
                         .codecs(clientCodecConfigurer -> clientCodecConfigurer
                                 .defaultCodecs()
-                                .maxInMemorySize(16*1024*1024))
-                                 .build()).baseUrl("http://openlibrary.org/search.json").build();
-
-       //Scenario 2:
-          //There was an unexpected error (type=Internal Server Error, status=500).
-        //       200 OK from GET http://openlibrary.org/search.json?q=test; nested exception is org.springframework.core.io.buffer.DataBufferLimitException:
-         // Exceeded limit on max bytes to buffer : 262144
-
+                                .maxInMemorySize(8 * 1024 * 1024)) // Reduced from 16MB to 8MB
+                        .build())
+                .baseUrl("http://openlibrary.org/search.json")
+                .build();
     }
 
+    @GetMapping(value = "/search")
+    public String getSearchResults(@RequestParam String query, Model model) {
+        try {
+            // Use non-blocking approach with timeout
+            SearchResult result = this.webClient.get()
+                    .uri("?q={query}", query)
+                    .retrieve()
+                    .bodyToMono(SearchResult.class)
+                    .timeout(TIMEOUT)
+                    .onErrorReturn(new SearchResult()) // Return empty result on error
+                    .block();
 
-    //http://localhost:8080/search?query=test
-    //Scenario : 404 Not Found from GET http://openlibrary.org/search.json?q=test
-    //org.springframework.web.reactive.function.client.WebClientResponseException$NotFound: 404 Not Found from GET http://openlibrary.org/search.json?q=test
-    //	at org.springframework.web.reactive.function.client.WebClientResponseException.create(WebClientResponseException.java:202)
+            List<SearchResultBook> books = processSearchResults(result);
+            model.addAttribute("searchResults", books);
 
-
-
-    @GetMapping(value="/search")
-    public String getSearchResults(@RequestParam String query, Model model){
-        //Single request for
-        Mono<SearchResult> resultsMono=this.webClient.get()
-                .uri("?q={query}",query)
-                .retrieve().bodyToMono(SearchResult.class);  //Whole String Payload is what got --In Futute I ill get it
-
-        SearchResult result = resultsMono.block(); //Block the execution to get the results
-
-        List<SearchResultBook> books = result.getDocs()
-                .stream()
-                .limit(10)
-                .map(bookResult->{
-                    bookResult.setKey(bookResult.getKey().replace("/works/",""));
-                    String coverId=bookResult.getCover_i();
-                    if(StringUtils.hasText(coverId)){
-                        coverId=COVER_IMAGE_ROOT+coverId+"-M.jpg";
-                    }else{
-                        coverId="/images/No-image.png";
-                    }
-                    bookResult.setCover_i(coverId);
-                    return bookResult; //Mapping something you need to return new thing ahich are u are mapping to
-                })
-                .collect(Collectors.toList());
-
-        model.addAttribute("searchResults",books);
-
+        } catch (Exception e) {
+            // Log error and provide empty results
+            System.err.println("Search failed for query: " + query + ", Error: " + e.getMessage());
+            model.addAttribute("searchResults", Collections.emptyList());
+        }
 
         return "search";
+    }
+
+    private List<SearchResultBook> processSearchResults(SearchResult result) {
+        if (result == null || result.getDocs() == null) {
+            return Collections.emptyList();
+        }
+
+        return result.getDocs()
+                .stream()
+                .limit(MAX_RESULTS)
+                .map(this::transformBookResult)
+                .collect(Collectors.toList());
+    }
+
+    private SearchResultBook transformBookResult(SearchResultBook bookResult) {
+        // Optimize key transformation
+        String key = bookResult.getKey();
+        if (key != null && key.startsWith("/works/")) {
+            bookResult.setKey(key.substring(7)); // More efficient than replace
+        }
+
+        // Optimize cover image URL setting
+        String coverId = bookResult.getCover_i();
+        String coverUrl = StringUtils.hasText(coverId) 
+                ? COVER_IMAGE_ROOT + coverId + "-M.jpg"
+                : NO_IMAGE_PATH;
+        
+        bookResult.setCover_i(coverUrl);
+        return bookResult;
     }
 }

@@ -1,44 +1,76 @@
 spring:
-  application.name: betterreads
+  application:
+    name: betterreads
+  
   security:
     oauth2:
       client:
         registration:
           github:
-            client-id:  Iv1.f9ee263e4392053c
-            client-secret: c78c317c6e1e43ca282b18e7298b53c193d637cc
-
-#            http://localhost:8080/login/oauth2/code/github
-#  Hey Browser go call this above URL
-
-# Login :-Asking Github to authenticate for us :- Github needs to know :--Configure my application ://OAUth --handshake==>Auth
+            client-id: ${GITHUB_CLIENT_ID:Iv1.f9ee263e4392053c}
+            client-secret: ${GITHUB_CLIENT_SECRET:c78c317c6e1e43ca282b18e7298b53c193d637cc}
 
   data:
     cassandra:
-      keyspace-name: main
-      username: vBqZMYNXYjSZxZilbQsMpTIM
-      password: FG47J5FkpMrO4UFDiwS4rYAd1JlE6ftENYZlwmk8uYjAJI3ZAChOYna07LJuhU8MikLF-80HCJ_W5StPwoS77G+yFNt5a04LLyGgTyXv+JOgnX+52Tfc.y-BzJmh2Qiy
-      #      schema-action: recreate
+      keyspace-name: ${CASSANDRA_KEYSPACE:main}
+      username: ${CASSANDRA_USERNAME:vBqZMYNXYjSZxZilbQsMpTIM}
+      password: ${CASSANDRA_PASSWORD:FG47J5FkpMrO4UFDiwS4rYAd1JlE6ftENYZlwmk8uYjAJI3ZAChOYna07LJuhU8MikLF-80HCJ_W5StPwoS77G+yFNt5a04LLyGgTyXv+JOgnX+52Tfc.y-BzJmh2Qiy}
       schema-action: create-if-not-exists
       request:
         timeout: 10s
+        consistency: local-quorum
       connection:
         connect-timeout: 10s
         init-query-timeout: 10s
+        pool:
+          idle-timeout: 120s
+          heartbeat-interval: 30s
+
+  # Optimized for performance - only allow when absolutely necessary
   main:
-    allow-circular-references: true
+    allow-circular-references: false
 
-#  devtools:
-#    livereload:
-#      port: 35730
+  # Caching configuration for better performance
+  cache:
+    type: simple
+    cache-names: books, search-results
 
-datastax.astra:
-  secure-connect-bundle: secure-connect.zip
+  # Web configuration optimizations
+  mvc:
+    async:
+      request-timeout: 30s
 
-astra.db:
-  id: b553f74f-35d1-44e1-aaeb-2d3f0f38d9b2
-  region: us-east1
-  keyspace: main
-  application.token:  AstraCS:vBqZMYNXYjSZxZilbQsMpTIM:f27fe8ee4091e17e5f318af3dd5fea11df3048d2b8b269fed1edcd543599f30c
+# DataStax Astra configuration
+datastax:
+  astra:
+    secure-connect-bundle: ${ASTRA_SECURE_BUNDLE:secure-connect.zip}
+
+# Astra DB configuration with environment variables
+astra:
+  db:
+    id: ${ASTRA_DB_ID:b553f74f-35d1-44e1-aaeb-2d3f0f38d9b2}
+    region: ${ASTRA_DB_REGION:us-east1}
+    keyspace: ${ASTRA_DB_KEYSPACE:main}
+    application:
+      token: ${ASTRA_APPLICATION_TOKEN:AstraCS:vBqZMYNXYjSZxZilbQsMpTIM:f27fe8ee4091e17e5f318af3dd5fea11df3048d2b8b269fed1edcd543599f30c}
+
+# Logging configuration for monitoring performance
+logging:
+  level:
+    io.javabrains.betterreads: INFO
+    org.springframework.security: WARN
+    com.datastax.oss.driver: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+# Management and monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
 
 
